@@ -1,0 +1,31 @@
+version: '3'
+services:
+    reverse:        
+        restart: unless-stopped
+        volumes:
+            - ./data/nginx.dev:/etc/nginx/conf.d
+        depends_on: 
+            - janus
+    janus:
+        restart: always
+        build: 
+            dockerfile: Dockerfile
+            context: ./janus
+        volumes:
+            - ~/videology/recordings:/recordings
+    api:
+        build:
+            dockerfile: Dockerfile
+            context: ./server
+        volumes:
+            - /app/node_modules
+    client:
+        build:
+            dockerfile: Dockerfile.dev
+            context: ./client
+        volumes:
+            - /app/node_modules
+            - ./client:/app:cached
+        env_file:
+            - ./client/.env.dev            
+    

@@ -1,0 +1,15 @@
+parola certificat root: rtc.local
+
+openssl genrsa -des3 -out rootCA.key 4096
+
+openssl req -x509 -new -nodes -key rootCA.key -sha256 -days 3650 -out rootCA.crt
+
+openssl genrsa -out 192.168.99.23.key 2048
+
+openssl req -new -key 192.168.99.23.key -out 192.168.99.23.csr -config certificate.conf
+
+openssl req -in 192.168.99.23.csr -text -noout
+
+openssl x509 -req -in 192.168.99.23.csr -CA rootCA.crt -CAkey rootCA.key -CAcreateserial -out 192.168.99.23.crt -days 3650 -sha256 -extfile certificate.conf -extensions req_ext
+
+openssl x509 -in 192.168.99.23.crt -text -noout

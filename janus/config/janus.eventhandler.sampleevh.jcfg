@@ -25,7 +25,7 @@ general: {
 						# requests with an application/json payload. In case
 						# authentication is required to contact the backend, set
 						# the credentials as well (basic authentication only).
-	backend = "http://api:3000/janus-events"
+	backend = "http://localhost:3000/janus-events"
 	#backend_user = "myuser"
 	#backend_pwd = "mypwd"
 

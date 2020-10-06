@@ -3,7 +3,7 @@ FROM buildpack-deps:stretch
 RUN sed -i 's/archive.ubuntu.com/mirror.aarnet.edu.au\/pub\/ubuntu\/archive/g' /etc/apt/sources.list
 
 RUN rm -rf /var/lib/apt/lists/*
-RUN apt-get -y update && apt-get install -y libmicrohttpd-dev \
+RUN apt-get -y update && apt-get install -y \
     libjansson-dev \
     libnice-dev \
     libssl-dev \
@@ -15,10 +15,10 @@ RUN apt-get -y update && apt-get install -y libmicrohttpd-dev \
     libini-config-dev \
     libcollection-dev \
     libconfig-dev \
-    libcurl4-openssl-dev \
     pkg-config \
     gengetopt \
     libtool \
+    autopoint \
     automake \
     build-essential \
     subversion \
@@ -26,8 +26,25 @@ RUN apt-get -y update && apt-get install -y libmicrohttpd-dev \
     cmake \
     unzip \
     zip \
-    lsof wget vim sudo rsync cron mysql-client openssh-server supervisor locate
+    lsof wget vim sudo rsync cron mysql-client openssh-server supervisor locate mplayer valgrind certbot python-certbot-apache dnsutils tcpdump gstreamer1.0-tools
 
+
+# RUN apt-get install -y libx264-dev libmatroska-dev libopus-dev libssl1.0-dev libtheora-dev libogg-dev python3-pip flex bison libsoup2.4-dev libjpeg-dev nasm libvpx-dev
+# RUN sudo pip3 install meson ninja
+# RUN git clone https://gitlab.freedesktop.org/gstreamer/gst-build
+# WORKDIR /gst-build
+# RUN git log -n 1 HEAD
+# RUN git checkout 1016bf23
+# RUN git log -n 1 HEAD
+# RUN mkdir builddir
+# # RUN meson builddir
+# RUN meson builddir
+# RUN ninja -C builddir update
+# RUN ninja install -C builddir
+# RUN ldconfig
+# RUN which gst-launch-1.0
+# RUN ldd /usr/local/bin/gst-launch-1.0
+# RUN gst-launch-1.0
 
 
 # FFmpeg build section
@@ -59,7 +76,7 @@ RUN VPX="v1.8.1" && cd ~/ffmpeg_sources && \
 
 
 RUN OPUS="1.3" && cd ~/ffmpeg_sources && \
-    wget http://downloads.xiph.org/releases/opus/opus-$OPUS.tar.gz && \
+    wget https://archive.mozilla.org/pub/opus/opus-$OPUS.tar.gz && \
     tar xzvf opus-$OPUS.tar.gz && \
     cd opus-$OPUS && \
     ./configure --help && \
@@ -129,6 +146,46 @@ RUN FFMPEG_VER="n4.2.1" && cd ~/ffmpeg_sources && \
     mv ~/bin/ffmpeg /usr/local/bin/
 
 
+
+
+# nginx-rtmp with openresty
+RUN ZLIB="zlib-1.2.11" && vNGRTMP="v1.1.11" && PCRE="8.41" && nginx_build=/root/nginx && mkdir $nginx_build && \
+    cd $nginx_build && \
+    wget https://ftp.pcre.org/pub/pcre/pcre-$PCRE.tar.gz && \
+    tar -zxf pcre-$PCRE.tar.gz && \
+    cd pcre-$PCRE && \
+    ./configure && make && make install && \
+    cd $nginx_build && \
+    wget http://zlib.net/$ZLIB.tar.gz && \
+    tar -zxf $ZLIB.tar.gz && \
+    cd $ZLIB && \
+    ./configure && make &&  make install && \
+    cd $nginx_build && \
+    wget https://github.com/arut/nginx-rtmp-module/archive/$vNGRTMP.tar.gz && \
+    tar zxf $vNGRTMP.tar.gz && mv nginx-rtmp-module-* nginx-rtmp-module
+
+
+RUN OPENRESTY="1.13.6.2" && ZLIB="zlib-1.2.11" && PCRE="pcre-8.41" &&  openresty_build=/root/openresty && mkdir $openresty_build && \
+    wget https://openresty.org/download/openresty-$OPENRESTY.tar.gz && \
+    tar zxf openresty-$OPENRESTY.tar.gz && \
+    cd openresty-$OPENRESTY && \
+    nginx_build=/root/nginx && \
+    ./configure --sbin-path=/usr/local/nginx/nginx \
+    --conf-path=/usr/local/nginx/nginx.conf  \
+    --pid-path=/usr/local/nginx/nginx.pid \
+    --with-pcre-jit \
+    --with-ipv6 \
+    --with-pcre=$nginx_build/$PCRE \
+    --with-zlib=$nginx_build/$ZLIB \
+    --with-http_ssl_module \
+    --with-stream \
+    --with-mail=dynamic \
+    --add-module=$nginx_build/nginx-rtmp-module && \
+    make && make install && mv /usr/local/nginx/nginx /usr/local/bin
+
+
+
+
 # Boringssl build section
 # If you want to use the openssl instead of boringssl
 # RUN apt-get update -y && apt-get install -y libssl-dev
@@ -187,7 +244,7 @@ RUN SRTP="2.2.0" && apt-get remove -y libsrtp0-dev && wget https://github.com/ci
 
 
 
-# 8 March, 2019 1 commit 67807a17ce983a860804d7732aaf7d2fb56150ba
+# March, 2019 1 commit 67807a17ce983a860804d7732aaf7d2fb56150ba
 RUN apt-get remove -y libnice-dev libnice10 && \
     echo "deb http://deb.debian.org/debian  stretch-backports main" >> /etc/apt/sources.list && \
     apt-get  update && \
@@ -226,16 +283,26 @@ RUN cd / && git clone https://github.com/sctplab/usrsctp.git && cd /usrsctp && \
     ./configure && \
     make && make install
 
+WORKDIR /tmp
+RUN git clone https://git.gnunet.org/libmicrohttpd.git
+WORKDIR /tmp/libmicrohttpd
+RUN git checkout v0.9.60
+RUN autoreconf -fi
+RUN ./configure
+RUN make && make install
 
 
-# tag v0.8.0 https://github.com/meetecho/janus-gateway/commit/f3a4a5bde832c0278db3fe5adc9ffb5e859d1927
+
 RUN cd / && git clone https://github.com/meetecho/janus-gateway.git && cd /janus-gateway && \
+    git checkout refs/tags/v0.10.4 && \
     sh autogen.sh &&  \
-    git checkout origin/master && git reset --hard f3a4a5bde832c0278db3fe5adc9ffb5e859d1927 && \ 
     PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig" ./configure \
     --enable-post-processing \
     --enable-boringssl \
     --enable-data-channels \
+    --disable-rabbitmq \
+    --disable-mqtt \
+    --disable-unix-sockets \
     --enable-dtls-settimeout \
     --enable-plugin-echotest \
     --enable-plugin-recordplay \
@@ -243,20 +310,16 @@ RUN cd / && git clone https://github.com/meetecho/janus-gateway.git && cd /janus
     --enable-plugin-videocall \
     --enable-plugin-voicemail \
     --enable-plugin-textroom \
+    --enable-rest \
+    --enable-turn-rest-api \
     --enable-plugin-audiobridge \
     --enable-plugin-nosip \
     --enable-sample-event-handler \
     --enable-all-handlers && \
     make && make install && make configs && ldconfig
 
-# RUN apt-get update && \
-#     apt-get install -y apt-transport-https ca-certificates && \
-#     apt-get install -y lsb-release && \
-#     echo "deb http://download.rethinkdb.com/apt `lsb_release -cs` main" > /etc/apt/sources.list.d/rethinkdb.list && \
-#     apt-get install -y wget && \
-#     wget -O- http://download.rethinkdb.com/apt/pubkey.gpg | apt-key add - && \
-#     apt-get update && \
-#     apt-get install -y rethinkdb 
+
+
 
 
 COPY ./config/janus.transport.http.jcfg /usr/local/etc/janus/janus.transport.http.jcfg
@@ -273,8 +336,7 @@ COPY ./config/janus.jcfg /usr/local/etc/janus/janus.jcfg
 
 RUN mkdir /usr/local/share/janus/demos/rcs 
 
-CMD janus -e
-
+CMD janus -e 
 
 # RUN apt-get -y install iperf iperf3
 # RUN git clone https://github.com/HewlettPackard/netperf.git && \
@@ -282,4 +344,4 @@ CMD janus -e
 #     bash autogen.sh && \
 #     ./configure && \
 #     make && \
-#     make install 
+#     make install
