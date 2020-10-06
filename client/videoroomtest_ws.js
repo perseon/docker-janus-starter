@@ -42,7 +42,7 @@
 // in the presented order. The first working server will be used for
 // the whole session.
 //
-var server = "wss://" + window.location.hostname + ":8189/jws";
+var server = "wss://" + window.location.hostname + "/jws";
 
 var janus = null;
 var sfutest = null;

@@ -14,12 +14,6 @@ services:
         volumes:
             - /mnt/videology/recordings:/recordings
         network_mode: "host"
-    api:
-        restart: always
-        build:
-            dockerfile: Dockerfile
-            context: ./server
-        network_mode: "host"
     client:
         volumes:
             - /app/node_modules

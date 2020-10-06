@@ -13,12 +13,6 @@ services:
             context: ./janus
         volumes:
             - ~/videology/recordings:/recordings
-    api:
-        build:
-            dockerfile: Dockerfile
-            context: ./server
-        volumes:
-            - /app/node_modules
     client:
         build:
             dockerfile: Dockerfile.dev
